@@ -1,0 +1,987 @@
+---
+title: "WQD7004_Group_Project_G6"
+author: "-"
+date: '-'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# WQD7004 Programming for Data Science
+#### Lecturer: Assoc. Prof. Dr. Ang Tan Fong
+
+## Group Project - Group 6
+
+### Group Members:
+* Chen Yayi (S2110521)
+* Cheng Ziyu (17141946)
+* Lee Voon Chung (S2142277)
+* Lee Voon Hee (S2140816)
+* Leow Jun Shou (17123313)
+
+# Predicting the Risk of Company Bankruptcy Using Financial Indicators
+
+## Table of Contents
+[1. Introduction]  
+[2. Research Questions]  
+[3. Research Objectives]  
+[4. Description of Dataset]  
+[5. Data Cleaning and Pre-Processing]  
+  - 5.1 Preview of Dataset  
+  - 5.2 Removing Columns with Percentage of NA’s > 10%  
+  - 5.3 Heat Map of Correlation Coefficients between Attributes & Retaining One (1) Attribute from Each Highly Correlated Group  
+  - 5.4 Exploratory Data Analysis (EDA)  
+  - 5.5 Imputation for Columns with Percentage of NA’s 1% to 10%  
+  - 5.6 Removing Rows for Columns with Percentage of NA’s < 1%  
+[6. Tidy Dataset, Z-Score Normalisation, Data Partition & SMOTE]  
+  - 6.1 Tidy Dataset  
+  - 6.2 Data Transformation with Z-Score Normalisation  
+  - 6.3 Data Partition  
+  - 6.4 Oversampling & Undersampling with SMOTE  
+[7. Modelling]  
+  - 7.1 Random Forest Classification Analysis  
+  - 7.2 k-Nearest Neighbours Classification Analysis  
+  - 7.3 AdaBoost Classification Analysis  
+  - 7.4 Logistic Regrssion Analysis  
+  - 7.5 Identifying Important Financial Ratios Associated with Bankruptcy through Logistic Regression Model  
+[8. Results]  
+[9. Conclusions]  
+[References]  
+
+## 1. Introduction
+According to Cambridge Dictionary (Cambridge University Press, 2022), **bankruptcy** refers to a situation in which a business or a person becomes unable to pay what is owed.
+
+There are subtle differences across countries on the legal definition of company bankruptcy. In layman’s terms, when a company declares bankruptcy, the company is unable to pay off its debts when they fall due – it will cease its business operation and eventually have to liquidate its assets.
+
+Company bankruptcies are often associated with monetary loss to shareholders and creditors. Moreover, cessation of business operation would mean leaving a void in the supply chain, thus causing disruption to the downstream and upstream businesses, and ultimately to the public consumers of those goods and services. In 2008, the bankruptcy of Lehman Brothers had even initiated a ripple effect to the entire financial industry, leading to the 2008 Global Financial Crisis which adversely affected other non-financial industries and economies of various countries. The infamous multinational insurance group – the American International Group (AIG) was adversely affected by the spill-over turmoil to the extent that it had to be bailed out by the US government (Financial Crisis Inquiry Commission, 2011).
+
+Given the negative consequence of company bankruptcies, attempts have been made to predict company bankruptcies using traditional regression-type classification analysis based on companies’ financial ratios as early as 1968 (Altman, 1968). In the study, the author separated various financial ratios of companies derived from their balance sheet and income statement into five categories, namely liquidity ratio, profitability ratio, leverage ratio, solvency ratio, and activity ratios. In recent years, with the development of new analysis techniques and increasing computing power, machine learning techniques have been utlised to tackle company bankruptcy prediction problem (Wang & Liu, 2021).
+
+For this Group Project, a dataset comprising **Polish companies bankruptcy status** alongside their financial ratios were found on the Internet (Tomczak, 2016). Using this dataset, we intend to achieve our research objectives and answer the research questions below.
+
+## 2. Research Questions
+1. How is the performance of logistic regression and other machine learning classification models in predicting company bankruptcy?
+
+2. Which financial ratios are important in predicting bankruptcy status of Polish companies?
+
+## 3. Research Objectives
+1. To build various logistic regression and machine learning classification models.
+
+2. To compare prediction accuracies of models.
+
+3. To identify the top five most important financial ratios associated with bankruptcy from logistic regression model.
+
+## 4. Description of Dataset
+There are five “.arff” files/ datasets in Tomczak (2016). In order to simplify the whole process, only “**3year.arff**” will be pre-processed and analysed in this project as it contains the greatest number of records (i.e. rows) among all the five files.
+
+*	“1year.arff” contains financial indicators on 1st year of the forecasting period and the bankruptcy status after 5 years. This file contains 7027 companies (financial statements), 271 went bankrupt after 5 years while 6756 did not bankrupt in the forecasting period.
+*	“2year.arff” contains financial indicators on 2nd year of the forecasting period and the bankruptcy status after 4 years. This file contains 10173 companies (financial statements), 400 went bankrupt after 4 years while 9773 did not bankrupt in the forecasting period.
+*	**“3year.arff” contains financial indicators on 3rd year of the forecasting period and the bankruptcy status after 3 years. This file contains 10503 companies (financial statements), 495 went bankrupt after 3 years while 10008 did not bankrupt in the forecasting period.**
+*	“4year.arff” contains financial indicators on 4th year of the forecasting period and the bankruptcy status after 2 years. This file contains 9792 companies (financial statements), 515 went bankrupt after 2 years while 9277 did not bankrupt in the forecasting period.
+*	“5year.arff” contains financial indicators on 5th year of the forecasting period and the bankruptcy status after 1 year. This file contains 5910 companies (financial statements), 410 went bankrupt after 1 year while 5500 did not bankrupt in the forecasting period.
+
+**Tables 4.1** and **4.2** below show the general details of the of the dataset “3year.arff”. The derivation of dataset dimensions, minimum and maximum values for each column, and number and percentage of missing values will be demonstrated in **Section 5**. 
+
+
+**Table 4.1**: Description of dataset “3year.arff”
+
+| Detail | Description |
+|:-------|:------------|
+| Title: | Polish companies bankruptcy data |
+| Source: | Tomczak, S. K. (2016). UCI Machine Learning Repository. |
+| Link: | https://archive.ics.uci.edu/ml/datasets/Polish+companies+bankruptcy+data |
+| Years: | 2000 - 2013 |
+| Purpose: | The dataset is about bankruptcy prediction of Polish companies. The bankrupt companies were analysed in the period 2007 to 2013, while the still operating companies were evaluated from 2000 to 2012. |
+| Filename: | 3year.arff |
+| Number of rows: | 10503 rows |
+| Number of columns: | 65 columns |
+
+
+**Table 4.2**: Contents of dataset “3year.arff”
+
+| Column Name | Column Description from Metadata | Data Type | Min | Max | Number of NA's | Percentage of NA's (%) |
+|:-----------:|:---------------------------------|:---------:|----:|----:|:--------------:|:----------------------:|
+| Attr1 | X1 net profit / total assets | Numeric | -17.692 | 52.652 | 0 | 0 |
+| Attr2 | X2 total liabilities / total assets | Numeric | 0 | 480.73 | 0 | 0 |
+| Attr3 | X3 working capital / total assets | Numeric | -479.73 | 17.708 | 0 | 0 |
+| Attr4 | X4 current assets / short-term liabilities | Numeric | 0.00208 | 53433 | 18 | 0.17 |
+| Attr5 | X5 [(cash + short-term securities + receivables - short-term liabilities) / (operating expenses - depreciation)] * 365 | Numeric | -11903000 | 685440 | 25 | 0.24 |
+| Attr6 | X6 retained earnings / total assets | Numeric | -508.12 | 45.533 | 0 | 0 |
+| Attr7 | X7 EBIT / total assets | Numeric | -17.692 | 52.652 | 0 | 0 |
+| Attr8 | X8 book value of equity / total liabilities | Numeric | -2.0818 | 53432 | 14 | 0.13 |
+| Attr9 | X9 sales / total assets | Numeric | -1.2157 | 740.44 | 3 | 0.03 |
+| Attr10 | X10 equity / total assets | Numeric | -479.73 | 11.837 | 0 | 0 |
+| Attr11 | X11 (gross profit + extraordinary items + financial expenses) / total assets | Numeric | -17.692 | 52.652 | 0 | 0 |
+| Attr12 | X12 gross profit / short-term liabilities | Numeric | -1543.8 | 8259.4 | 18 | 0.17 |
+| Attr13 | X13 (gross profit + depreciation) / sales | Numeric | -631.71 | 4972 | 43 | 0.41 |
+| Attr14 | X14 (gross profit + interest) / total assets | Numeric | -17.692 | 52.652 | 0 | 0 |
+| Attr15 | X15 (total liabilities * 365) / (gross profit + depreciation) | Numeric | -2321800 | 10236000 | 8 | 0.08 |
+| Attr16 | X16 (gross profit + depreciation) / total liabilities | Numeric | -204.3 | 8259.4 | 14 | 0.13 |
+| Attr17 | X17 total assets / total liabilities | Numeric | -0.043411 | 53433 | 14 | 0.13 |
+| Attr18 | X18 gross profit / total assets | Numeric | -17.692 | 53.689 | 0 | 0 |
+| Attr19 | X19 gross profit / sales | Numeric | -771.65 | 123.94 | 43 | 0.41 |
+| Attr20 | X20 (inventory * 365) / sales | Numeric | -0.001439 | 91600 | 43 | 0.41 |
+| Attr21 | X21 sales (n) / sales (n-1) | Numeric | -1.1075 | 29907 | 807 | 7.68 |
+| Attr22 | X22 profit on operating activities / total assets | Numeric | -17.692 | 47.597 | 0 | 0 |
+| Attr23 | X23 net profit / sales | Numeric | -771.65 | 123.94 | 43 | 0.41 |
+| Attr24 | X24 gross profit (in 3 years) / total assets | Numeric | -60.742 | 179.92 | 227 | 2.16 |
+| Attr25 | X25 (equity - share capital) / total assets | Numeric | -500.75 | 8.8345 | 0 | 0 |
+| Attr26 | X26 (net profit + depreciation) / total liabilities | Numeric | -204.3 | 8262.3 | 14 | 0.13 |
+| Attr27 | X27 profit on operating activities / financial expenses | Numeric | -190130 | 2723000 | 715 | 6.81 |
+| Attr28 | X28 working capital / fixed assets | Numeric | -690.4 | 6233.3 | 228 | 2.17 |
+| Attr29 | X29 logarithm of total assets | Numeric | -0.35853 | 9.6199 | 0 | 0 |
+| Attr30 | X30 (total liabilities - cash) / sales | Numeric | -6351.7 | 2940.5 | 43 | 0.41 |
+| Attr31 | X31 (gross profit + interest) / sales | Numeric | -771.39 | 60.43 | 43 | 0.41 |
+| Attr32 | X32 (current liabilities * 365) / cost of products sold | Numeric | -9295.6 | 6674200 | 101 | 0.96 |
+| Attr33 | X33 operating expenses / short-term liabilities | Numeric | -1.9219 | 2787.9 | 18 | 0.17 |
+| Attr34 | X34 operating expenses / total liabilities | Numeric | -1696 | 6348.5 | 14 | 0.13 |
+| Attr35 | X35 profit on sales / total assets | Numeric | -17.073 | 47.597 | 0 | 0 |
+| Attr36 | X36 total sales / total assets | Numeric | -0.000084 | 169.5 | 0 | 0 |
+| Attr37 | X37 (current assets - inventories) / long-term liabilities | Numeric | -2.2009 | 136090 | 4736 | 45.09 |
+| Attr38 | X38 constant capital / total assets | Numeric | -479.73 | 13.656 | 0 | 0 |
+| Attr39 | X39 profit on sales / sales | Numeric | -551.11 | 293.15 | 43 | 0.41 |
+| Attr40 | X40 (current assets - inventory - receivables) / short-term liabilities | Numeric | -7.0819 | 2883 | 18 | 0.17 |
+| Attr41 | X41 total liabilities / ((profit on operating activities + depreciation) * (12/365)) | Numeric | -667.73 | 288770 | 202 | 1.92 |
+| Attr42 | X42 profit on operating activities / sales | Numeric | -765.8 | 165.95 | 43 | 0.41 |
+| Attr43 | X43 rotation receivables + inventory turnover in days | Numeric | -25113 | 254030 | 43 | 0.41 |
+| Attr44 | X44 (receivables * 365) / sales | Numeric | -25113 | 254030 | 43 | 0.41 |
+| Attr45 | X45 net profit / inventory | Numeric | -74385 | 113280 | 591 | 5.63 |
+| Attr46 | X46 (current assets - inventory) / short-term liabilities | Numeric | -6.4692 | 53433 | 18 | 0.17 |
+| Attr47 | X47 (inventory * 365) / cost of products sold | Numeric | -17.303 | 2591100 | 86 | 0.82 |
+| Attr48 | X48 EBITDA (profit on operating activities - depreciation) / total assets | Numeric | -17.692 | 47.597 | 0 | 0 |
+| Attr49 | X49 EBITDA (profit on operating activities - depreciation) / sales | Numeric | -905.75 | 178.89 | 43 | 0.41 |
+| Attr50 | X50 current assets / total liabilities | Numeric | 0.00208 | 53433 | 14 | 0.13 |
+| Attr51 | X51 short-term liabilities / total assets | Numeric | 0 | 480.73 | 0 | 0 |
+| Attr52 | X52 (short-term liabilities * 365) / cost of products sold) | Numeric | -25.467 | 84827 | 86 | 0.82 |
+| Attr53 | X53 equity / fixed assets | Numeric | -869.04 | 6234.3 | 228 | 2.17 |
+| Attr54 | X54 constant capital / fixed assets | Numeric | -706.49 | 6234.3 | 228 | 2.17 |
+| Attr55 | X55 working capital | Numeric | -751380 | 3380500 | 0 | 0 |
+| Attr56 | X56 (sales - cost of products sold) / sales | Numeric | -5691.7 | 293.15 | 43 | 0.41 |
+| Attr57 | X57 (current assets - inventory - short-term liabilities) / (sales - gross profit - depreciation) | Numeric | -1667.3 | 552.64 | 0 | 0 |
+| Attr58 | X58 total costs /total sales | Numeric | -198.69 | 18118 | 29 | 0.28 |
+| Attr59 | X59 long-term liabilities / equity | Numeric | -172.07 | 7617.3 | 0 | 0 |
+| Attr60 | X60 sales / inventory | Numeric | 0 | 3660200 | 592 | 5.64 |
+| Attr61 | X61 sales / receivables | Numeric | -6.5903 | 4470.4 | 17 | 0.16 |
+| Attr62 | X62 (short-term liabilities *365) / sales | Numeric | -2336500 | 1073500 | 43 | 0.41 |
+| Attr63 | X63 sales / short-term liabilities | Numeric | -0.000156 | 1974.5 | 18 | 0.17 |
+| Attr64 | X64 sales / fixed assets | Numeric | -0.000102 | 21499 | 228 | 2.17 |
+| class | Bankruptcy status | Boolean | 0 = "No" | 1 = "Yes" | 0 | 0 |
+
+## 5. Data Cleaning and Pre-Processing
+There are **six main steps** in the data cleaning and pre-processing of the raw dataset.
+
+**Step 1**: Previewing dataset to have some general ideas of the dataset, such as dimensions, data type, range of values, number of missing values, etc.
+
+**Step 2**: Removing columns with percentage of NA’s > 10%. Attr37 has been deleted from the dataset as it comprises 45.09% of missing values. Imputation for these large number of missing values may introduce bias.
+
+**Step 3**: Determining correlations between attributes and retaining one attribute from each highly correlated group. 24 attributes have been retained while 39 attributes have been deleted in this step. This is to avoid collinearity problem in modelling.
+
+**Step 4**: Exploratory data analysis (EDA) to check for anomalies in all attributes. Attr6 has been deleted as it contains 42.6% of zeros, which is unlikely for this attribute.
+
+**Step 5**: Imputing columns with percentage of NA’s 1% to 10%. Attr21, Attr27,  Attr28, Attr41, Attr45 and Attr60 have been imputed with suitable constants for all the missing values, such as zeros or medians.
+
+**Step 6**: Removing rows for columns with percentage of NA’s < 1%. A total of 168 rows have been deleted from the dataset.
+
+### 5.1 Preview of Dataset
+```{r}
+# Set working directory
+setwd("C:/Users/22514/Desktop/UM MDataSc/WQD7004 Programming for DS/Group Project (G6)")
+getwd()
+```
+
+```{r}
+# Load all the required packages
+library("foreign")
+library("tidyr")
+library("ggplot2")
+library("classInt")
+library("dplyr")
+```
+
+```{r}
+# Read arff file
+df <- read.arff("3year.arff")
+
+# Save as csv
+write.csv(df, file="df.csv", row.names=FALSE)
+```
+
+```{r}
+# Preview the first 6 rows of dataset
+head(df)
+```
+
+```{r}
+# Check dimensions of dataset
+dim(df)
+```
+Raw dataset has 10503 rows, 65 columns (64 attributes "Attr" + 1 bankruptcy status "class")
+
+```{r}
+# Check the data type, summary statistics, number of missing values (NA's) of columns
+summary(df)
+```
+Minimum and maximum values of each column are tabuated in **Table 4.2**.
+
+
+```{r}
+# Count number of NA's
+na_count <- sapply(df, function(x) sum(length(which(is.na(x)))))
+
+# Calculate percentage of NA's
+percent_na <- round(na_count/nrow(df)*100,2)
+percent_na
+```
+Number and percentage of NA's of each column are tabulated in **Table 4.2**.
+
+### 5.2 Removing Columns with Percentage of NA's > 10%
+Since column Attr37 has percentage of NA's = 45.09% > 10%, it is removed from the dataset as imputation may cause bias.
+
+```{r}
+# Remove column Attr37
+df1 <- subset(df, select= -Attr37)
+
+#Check dimensions of df1
+dim(df1)
+```
+df1 has 10503 rows, 64 columns
+
+### 5.3 Heat Map of Correlation Coefficients between Attributes & Retaining One (1) Attribute from Each Highly Correlated Group 
+
+```{r}
+# Remove column "class" to build correlation coefficient matrix
+# df_hm has 10503 rows, 63 columns
+df_hm <- subset(df1, select= -class)
+
+# Correlation coefficient matrix
+corrmatrix <- round(cor(df_hm, use="complete.obs"),2)
+corrmatrix <- data.frame(corrmatrix)
+
+# Construct heatmap df using gather
+corrmatrix$first <- row.names(corrmatrix)
+heatmap <- gather(corrmatrix, "second", "Correlation", 1:63)
+
+# Plot heatmap using ggplot2
+ggplot(data = heatmap, aes(second, first, fill = Correlation))+
+  geom_tile(color = "white")+
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+                       midpoint = 0, limit = c(-1,1), space = "Lab", 
+                       name="Pearson\nCorrelation")+
+  theme_minimal()+ 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+                                   size = 12, hjust = 1))+
+  coord_fixed()
+```
+
+Dark red and dark blue dots are highly correlated attrribute pairs. In this project, only one attribute will be retained from each highly correlated group (where correlation < -0.7 or correlation > 0.7) to avoid collinearity issue.
+
+```{r}
+# Check Pearson correlations between attributes
+# Filter in all highly correlated attribute pairs.
+heatmap %>% filter((Correlation < -0.7 | Correlation > 0.7) & first != second)
+```
+
+The attributes to be retained from all highly correlated groups are:
+
+| Attribute to Retain | Attribute(s) to Remove |
+|:-:|:-|
+| 1 | 7, 11, 14, 22, 24, 35, 48 |
+| 2 | 3, 10, 25, 38, 51 |
+| 4 | 40, 46, 50 |
+| 5 | - |
+| 6 | - |
+| 8 | 12, 16, 17, 19, 23, 26, 31 |
+| 9 | 36 |
+| 15 | - |
+| 18 | 13, 42 |
+| 20 | 30, 43, 44, 49, 56, 58, 62 |
+| 21 | - |
+| 27 | - |
+| 28 | 53, 54, 64 |
+| 29 |  |
+| 32 | 52 |
+| 34 | 33, 63 |
+| 39 | - |
+| 41 | - |
+| 45 | - |
+| 47 | - |
+| 55 | - |
+| 57 | 59 |
+| 60 | - |
+| 61 | - |
+
+The new heatmap after removal of highly correlated attributes is displayed as below:
+```{r}
+# Retain only attributes in the table above
+#df_hm1 has 10503 rows, 24 columns
+df_hm1 <- subset(df_hm, select= c("Attr1","Attr2","Attr4","Attr5","Attr6","Attr8",
+                                  "Attr9","Attr15","Attr18","Attr20","Attr21",
+                                  "Attr27","Attr28","Attr29","Attr32","Attr34",
+                                  "Attr39","Attr41","Attr45","Attr47","Attr55",
+                                  "Attr57","Attr60","Attr61"))
+
+# Correlation coefficient matrix
+corrmatrix1 <- round(cor(df_hm1, use="complete.obs"),2)
+corrmatrix1 <- data.frame(corrmatrix1)
+
+# Construct new heatmap1 df using gather
+corrmatrix1$first <- row.names(corrmatrix1)
+heatmap1 <- gather(corrmatrix1, "second", "Correlation", 1:24)
+
+# Plot new heatmap1 to check all correlations are within -0.7 to 0.7
+ggplot(data = heatmap1, aes(second, first, fill = Correlation))+
+  geom_tile(color = "white")+
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+                       midpoint = 0, limit = c(-1,1), space = "Lab", 
+                       name="Pearson\nCorrelation")+
+  theme_minimal()+ 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+                                   size = 12, hjust = 1))+
+  coord_fixed()
+```
+
+```{r}
+# Check Pearson correlations between attributes
+# Filter in all the highly correlated attribute pairs.
+heatmap1 %>% filter((Correlation < -0.7 | Correlation > 0.7) & first != second)
+```
+No attributes are highly correlated. All correlations are within -0.7 to 0.7.
+
+Retain Attributes 1, 2, 4, 5, 6, 8, 9, 15, 18, 20, 21, 27, 28, 29, 32, 34, 39, 41, 45, 47, 55, 57, 60, 61 and class.
+```{r}
+# Retain unique columns and discard other highly correlated columns
+df2 <- subset(df1, select= c("Attr1","Attr2","Attr4","Attr5","Attr6","Attr8",
+                             "Attr9","Attr15","Attr18","Attr20","Attr21","Attr27",
+                             "Attr28","Attr29","Attr32","Attr34","Attr39","Attr41",
+                             "Attr45","Attr47","Attr55","Attr57","Attr60","Attr61",
+                             "class"))
+
+#Check dimensions of df2
+dim(df2)
+```
+df2 has 10503 rows, 25 columns
+
+### 5.4 Exploratory Data Analysis (EDA)
+EDA will be performed on all the remaining 24 attributes to further clean and pre-process the dataset. In this section, EDA on Attr1, Attr6, Attr29 and Attr47 will be showcased as examples. 
+
+**EDA on Attr1**:
+
+* Boxplot of Attr1
+```{r}
+hist(df2$Attr1, breaks=1000)
+```
+
+Since most of the data are highly concentrated at one location, the data will be binned into 10 equal-frequency bins.
+
+* Equal-frequency binning of Attr1
+```{r}
+# Add A1_binf column to bin Attr1 into 10 equal-frequency bins
+df_A1 <- df2 %>% mutate(A1_binf = ntile(Attr1, n=10))
+
+# Create a new df_A1_binf df
+# Select A1_binf and class columns %>%
+# Grouped by 10 bins %>%
+# Count number of companies in each bin, number of bankruptcies in each bin, and
+# add a column as the ratio of bankruptcy to total companies.
+df_A1_binf <- df_A1 %>% select(A1_binf,class) %>% group_by(A1_binf) %>% 
+  summarise(companycnt=n(), bankruptcycnt = sum(ifelse(class=="1",1,0))) %>% 
+  mutate(bankruptcypct=bankruptcycnt/companycnt)
+
+# Plot bar chart to check the trend between Attr1 bins and bankruptcy ratio
+ggplot(data=df_A1_binf, aes(x=A1_binf,y=bankruptcypct)) + geom_bar(stat="identity")
+```
+
+Trend can be observed between Attr1 and bankruptcy ratio.
+
+**EDA on Attr6:**
+
+```{r}
+# Add A6_binf column to bin Attr6 into 10 equal-frequency bins
+df_A6 <- df2 %>% mutate(A6_binf = ntile(Attr6, n=10))
+
+df_A6_binf <- df_A6 %>% select(A6_binf,class) %>% group_by(A6_binf) %>% 
+  summarise(companycnt=n(), bankruptcycnt = sum(ifelse(class=="1",1,0))) %>% 
+  mutate(bankruptcypct=bankruptcycnt/companycnt)
+
+# Plot bar chart to check the trend between Attr6 bins and bankruptcy ratio
+ggplot(data=df_A6_binf, aes(x=A6_binf,y=bankruptcypct)) + geom_bar(stat="identity")
+```
+
+Trend cannot be observed.
+
+A further scrutiny on Attr6 shows that Attr6 has many zeros (0) in it.
+
+```{r}
+nrow(df_A6[df_A6$Attr6==0,])
+```
+
+There are 4479 zeros in Attr6 (42.6% of total rows), which is unlikely for this financial ratio (= retained earnings / total assets). Therefore, Attr6 will be discarded.
+
+**EDA on Attr29:**
+
+```{r}
+# Add A29_binf column to bin Attr29 into 10 equal-frequency bins
+df_A29 <- df2 %>% mutate(A29_binf = ntile(Attr29, n=10))
+
+df_A29_binf <- df_A29 %>% select(A29_binf,class) %>% group_by(A29_binf) %>% 
+  summarise(companycnt=n(), bankruptcycnt = sum(ifelse(class=="1",1,0))) %>%
+  mutate(bankruptcypct=bankruptcycnt/companycnt)
+
+# Plot bar chart to check the trend between Attr29 bins and bankruptcy ratio
+ggplot(data=df_A29_binf, aes(x=A29_binf,y=bankruptcypct)) + geom_bar(stat="identity")
+```
+
+The trend line is close to flat. Attr29 might be an insignificant attribute to bankruptcy in the modelling later. Attr29 to be retained for now.
+
+**EDA on Attr47:**
+
+```{r}
+# Add A47_binf column to bin Attr47 into 10 equal-frequency bins
+df_A47 <- df2 %>% mutate(A47_binf = ntile(Attr47, n=10))
+
+df_A47_binf <- df_A47 %>% select(A47_binf,class) %>% group_by(A47_binf) %>% 
+  summarise(companycnt=n(), bankruptcycnt = sum(ifelse(class=="1",1,0))) %>%
+  mutate(bankruptcypct=bankruptcycnt/companycnt)
+
+# Plot bar chart to check the trend between Attr47 bins and bankruptcy ratio
+ggplot(data=df_A47_binf, aes(x=A47_binf,y=bankruptcypct)) + geom_bar(stat="identity")
+```
+
+The trend line is close to flat. Attr47 might be an insignificant attribute to bankruptcy in the modelling later. Attr47 to be retained for now.
+
+**Removing Attr6**
+```{r}
+# Remove Attr6 column
+df3 <- subset(df2, select= -Attr6)
+
+# Check dimensions of df3
+dim(df3)
+```
+
+df3 has 10503 rows, 24 columns
+
+### 5.5 Imputation for Columns with Percentage of NA's 1% to 10%
+**Imputing zeros (0) to Attr21's NA rows**
+
+Attr21 is a financial ratio of sales (n) / sales (n-1) and it has 7.68% of NA's.
+Assuming that there is no growth in sales between two consecutive years for NA rows, therefore sales (n) / sales (n-1) = 0.
+
+```{r}
+df4 <- df3
+
+# Impute 0 to Attr21's NA rows
+df4[is.na(df4$Attr21),10] <- 0
+```
+
+**Imputing medians to Attr27, Attr28, Attr41, Attr45 and Attr60's NA rows**
+
+As Attr27, Attr28, Attr41, Attr45 and Attr60's data are **skewed**, imputing medians to the NA rows is a better choice than means.
+
+```{r}
+# Impute medians to Attr27 NA rows
+df4[is.na(df4$Attr27),11] <- median(df4$Attr27, na.rm=TRUE)
+
+# Impute medians to Attr28 NA rows
+df4[is.na(df4$Attr28),12] <- median(df4$Attr28, na.rm=TRUE)
+
+# Impute medians to Attr41 NA rows
+df4[is.na(df4$Attr41),17] <- median(df4$Attr41, na.rm=TRUE)
+
+# Impute medians to Attr45 NA rows
+df4[is.na(df4$Attr45),18] <- median(df4$Attr45, na.rm=TRUE)
+
+# Impute medians to Attr60 NA rows
+df4[is.na(df4$Attr60),22] <- median(df4$Attr60, na.rm=TRUE)
+```
+
+### 5.6 Removing Rows for Columns with Percentage of NA's < 1%
+There are still some NA's for Attr4 (0.17%), Attr5 (0.24%), Attr8 (0.13%), Attr9 (0.03%), Attr15 (0.08%), Attr20 (0.41%), Attr32 (0.96%), Attr34 (0.13%), Attr39 (0.41%), Attr47 (0.82%) and Attr61 (0.16%).
+
+```{r}
+# Check number of NA rows to be deleted
+nrow(df4[is.na(df4$Attr4) | is.na(df4$Attr5) | is.na(df4$Attr8) | is.na(df4$Attr9) |
+    is.na(df4$Attr15) | is.na(df4$Attr20) | is.na(df4$Attr32) | is.na(df4$Attr34) | 
+    is.na(df4$Attr39) | is.na(df4$Attr47) | is.na(df4$Attr61),])
+```
+Total number of rows to be deleted is 168, which is 1.6% of total rows (10503 rows).
+
+Removing NA rows:
+```{r}
+# Delete 168 NA rows
+df5 <- df4[!(is.na(df4$Attr4) | is.na(df4$Attr5) | is.na(df4$Attr8) | is.na(df4$Attr9) | 
+          is.na(df4$Attr15) | is.na(df4$Attr20) | is.na(df4$Attr32) | is.na(df4$Attr34) | 
+          is.na(df4$Attr39) | is.na(df4$Attr47) | is.na(df4$Attr61)),]
+```
+
+```{r}
+# Check dimensions of df5
+dim(df5)
+```
+df5 contains 10335 rows, 24 columns.
+
+## 6. Tidy Dataset, Z-Score Normalisation, Data Partition & SMOTE
+### 6.1 Tidy Dataset
+In order to suit the library requirements in the Modelling section, labels for "class" column have to be renamed as "Sustain" and "Bankrupt".
+```{r}
+# Change class labels from "0" & "1" to "Sustain" & "Bankrupt"
+df5$class = as.factor(df5$class)
+levels(df5$class) <- c("Sustain","Bankrupt")
+```
+
+There is no NA in the tidy dataset df5 anymore.
+```{r}
+# Check whether there is NA in tidy dataset
+any(is.na(df5))
+```
+
+The tidy dataset is df5 and it contains 10335 rows and 24 columns (23 attributes + 1 class columns).
+```{r}
+# Check number of rows
+#nrow(df5) # 10335 total rows
+#nrow(df5[df5$class=="Sustain",]) # 9847 Sustain rows
+#nrow(df5[df5$class=="Bankrupt",]) # 488 Bankrupt rows
+
+# Save tidy dataset df5
+write.csv(df5, file="df5.csv", row.names=FALSE)
+```
+
+### 6.2 Data Transformation with Z-Score Normalisation
+```{r}
+# Load all the required packages
+library(caret)
+library(performanceEstimation) # For SMOTE
+library(randomForest) # For Random Forest
+library(MLeval) # For evalm
+library(fastAdaboost) # For AdaBoost
+```
+
+As the data within the attributes are highly concentrated at a narrow range (spike), the data will be spread out by Z-score normalisation such that it has a lower peak and less outliers.
+```{r}
+# Z-score normalisation
+# df5 has 24 columns (23 Attr + 1 class)
+# 23 Attr columns to be Z-score normalised
+tot_attr_col <- ncol(df5)-1
+preproc <- preProcess(df5[,c(1:tot_attr_col)], method=c("center","scale"))
+z_df5 <- predict(preproc, df5)
+
+summary(z_df5)
+```
+
+```{r}
+# Save tidy dataset z_df5
+write.csv(z_df5, file="z_df5.csv", row.names=FALSE)
+```
+
+Before Z-score normalisation, Attr61 has a higher peak (frequency up to 4000) and more outliers (x-axis up to 4000).
+```{r}
+hist(df5$Attr61, breaks=1000)
+```
+
+After Z-score normalisation, Attr61 has a lower peak (frequency up to 3000) and less outliers (x-axis up to 50).
+```{r}
+hist(z_df5$Attr61, breaks=1000)
+```
+
+### 6.3 Data Partition
+Dataset, df5 and normalised dataset, z_df5 are partitioned into **training set** (80% of rows) and **testing set** (20% of rows) for modelling in **Section 7**.
+
+```{r}
+# Write data partition function
+split_traintest <- function(dataframe){
+  set.seed(7) # Set seed as 7 for reproducibility
+  split=0.80  # Define an 80%/20% train/test split
+  trainIndex <- createDataPartition(dataframe$class, p=split, list=FALSE)
+  data_train <- dataframe[trainIndex,]
+  data_test <- dataframe[-trainIndex,]
+  return(list(data_train,data_test))
+}
+```
+
+```{r}
+# Data Partition for dataset df5
+data_set <-split_traintest(df5)
+train_set <- data_set[[1]]
+test_set <- data_set[[2]]
+
+# Check number of rows
+#nrow(train_set) # 8269 total rows
+#nrow(train_set[train_set$class=="Sustain",]) # 7878 Sustain rows
+#nrow(train_set[train_set$class=="Bankrupt",]) # 391 Bankrupt rows
+
+# Save training set
+write.csv(train_set, file="train_set.csv", row.names=FALSE)
+
+# Save testing set
+write.csv(test_set, file="test_set.csv", row.names=FALSE)
+```
+
+```{r}
+# Data Partition for normalised dataset z_df5
+z_data_set <-split_traintest(z_df5)
+z_train_set <- z_data_set[[1]]
+z_test_set <- z_data_set[[2]]
+
+# Check number of rows
+#nrow(z_train_set) # 8269 total rows
+#nrow(z_train_set[z_train_set$class=="Sustain",]) # 7878 Sustain rows
+#nrow(z_train_set[z_train_set$class=="Bankrupt",]) # 391 Bankrupt rows
+
+# Save training set
+write.csv(z_train_set, file="z_train_set.csv", row.names=FALSE)
+
+# Save testing set
+write.csv(z_test_set, file="z_test_set.csv", row.names=FALSE)
+```
+
+### 6.4 Oversampling & Undersampling with SMOTE
+As our data are imbalanced, i.e. 95% "Sustain" vs. 5% "Bankrupt", Synthetic Minority Oversampling TEchnique (SMOTE) is adopted to oversample the minority class and undersample the majority class such that the dataset is more balanced (52% "Sustain" vs. 48% "Bankrupt"). SMOTE will only be applied on the training sets (train_set & z_train_set) but not on the testing sets (test_set & z_test_set).
+
+```{r}
+# Write SMOTE function
+# Set k-nearest neighbours to generate the new bankrupt samples = 5
+# Set perc.over = 10 (new additional bankrupt samples = 10 times of original bankrupt samples)
+# Set perc.under = 1.2 (Sustain samples = 1.2x10 times of original bankrupt samples)
+
+smote_training_func <- function(dataframe){
+  set.seed(1234) # Set seed as 1234 for reproducibility
+  return(smote(dataframe$class~., dataframe, perc.over = 10, k = 5, perc.under = 1.2))
+}
+```
+
+```{r}
+# To SMOTE train_set
+smote_train_set <- smote_training_func(train_set)
+
+#nrow(smote_train_set) # 8993 rows = 4692 + 4301 (52% vs. 48%)
+#nrow(smote_train_set[smote_train_set$class=="Sustain",]) # 4692 rows = 1.2(10)(391)
+#nrow(smote_train_set[smote_train_set$class=="Bankrupt",]) # 4301 rows = 391 + 10(391)
+
+# Save training set
+write.csv(smote_train_set, file="smote_train_set.csv", row.names=FALSE)
+```
+
+```{r}
+# To SMOTE z_train_set
+smote_z_train_set <- smote_training_func(z_train_set)
+
+#nrow(smote_z_train_set) # 8993 rows = 4692 + 4301 (52% vs. 48%)
+#nrow(smote_z_train_set[smote_z_train_set$class=="Sustain",]) # 4692 rows = 1.2(10)(391)
+#nrow(smote_z_train_set[smote_z_train_set$class=="Bankrupt",]) # 4301 rows = 391 + 10(391)
+
+# Save training set
+write.csv(smote_z_train_set, file="smote_z_train_set.csv", row.names=FALSE)
+```
+
+## 7. Modelling
+Models of different machine learning types (classification and regression), methods (Random Forest, k-Nearest Neighbours, Adaboost and Logistic Regression), and treatments (z-score normalisation, SMOTE, 10-fold cross validation) will be studied and compared in this project.
+
+To address the overfitting issue during the training phase of the machine learning, **10-fold cross validation** is employed in all the models. 
+
+The details of these 12 models are displayed as follows:
+
+**Table 7.1**: Details of 12 machine learning models 
+
+ | Model | Machine Learning Type | Machine Learning Method | Z-Score Normalisation | SMOTE | 10-Fold Cross Validation |
+ |:--:|:--------------:|:-------------:|:---:|:---:|:---:|
+ | 1A | Classification | Random Forest | Yes | Yes | Yes |
+ | 1B | Classification | Random Forest | - | Yes | Yes |
+ | 1C | Classification | Random Forest | Yes | - | Yes |
+ | 2A | Classification | k-Nearest Neighbours | Yes | Yes | Yes |
+ | 2B | Classification | k-Nearest Neighbours | - | Yes | Yes |
+ | 2C | Classification | k-Nearest Neighbours | Yes | - | Yes |
+ | 3A | Classification | AdaBoost | Yes | Yes | Yes |
+ | 3B | Classification | AdaBoost | - | Yes | Yes |
+ | 3C | Classification | AdaBoost | Yes | - | Yes |
+ | 4A | Regression | Logistic Regression | Yes | Yes | Yes |
+ | 4B | Regression | Logistic Regression | - | Yes | Yes |
+ | 4C | Regression | Logistic Regression | Yes | - | Yes |
+
+### 7.1 Random Forest Classification Analysis
+#### Model 1A: Random Forest with Normalisation, SMOTE & Cross Validation
+```{r}
+# Model 1A
+# 10-fold cross validation
+train_control <- trainControl(method="repeatedcv", number=10, repeats=1, classProbs=TRUE)
+#rf_cv_smote_z <- train(class~., data=smote_z_train_set, trControl=train_control, method="rf")
+#saveRDS(rf_cv_smote_z, "rf_cv_smote_z.rds")
+rf_cv_smote_z <- readRDS("rf_cv_smote_z.rds")
+rf_cv_smote_z
+```
+
+```{r}
+# Predict Sustain or Bankrupt for z_test_set
+pred1a <- predict(rf_cv_smote_z, newdata=z_test_set, type="prob")
+test1a <- evalm(data.frame(pred1a, z_test_set$class)) #AUC-ROC = 0.83
+```
+
+#### Model 1B: Random Forest with SMOTE & Cross Validation
+```{r}
+# Model 1B
+# 10-fold cross validation
+train_control <- trainControl(method="repeatedcv", number=10, repeats=1, classProbs=TRUE)
+#rf_cv_smote <- train(class~., data=smote_train_set, trControl=train_control, method="rf")
+#saveRDS(rf_cv_smote, "rf_cv_smote.rds")
+rf_cv_smote <- readRDS("rf_cv_smote.rds")
+rf_cv_smote
+```
+
+
+```{r}
+# Predict Sustain or Bankrupt for test_set
+pred1b <- predict(rf_cv_smote, newdata=test_set, type="prob")
+test1b <- evalm(data.frame(pred1b, test_set$class)) #AUC-ROC = 0.83
+```
+
+#### Model 1C: Random Forest with Normalisation & Cross Validation
+```{r}
+# Model 1C
+# 10-fold cross validation
+train_control <- trainControl(method="repeatedcv", number=10, repeats=1, classProbs=TRUE)
+#rf_cv_z <- train(class~., data=z_train_set, trControl=train_control, method="rf")
+#saveRDS(rf_cv_z, "rf_cv_z.rds")
+rf_cv_z <- readRDS("rf_cv_z.rds")
+rf_cv_z
+```
+
+```{r}
+# Predict Sustain or Bankrupt for z_test_set
+pred1c <- predict(rf_cv_z, newdata=z_test_set, type="prob")
+test1c <- evalm(data.frame(pred1c, z_test_set$class)) #AUC-ROC = 0.83
+```
+
+### 7.2 k-Nearest Neighbours Classification Analysis
+#### Model 2A: kNN with Normalisation, SMOTE & Cross Validation
+```{r}
+# Model 2A
+# 10-fold cross validation
+train_control <- trainControl(method="repeatedcv", number=10, repeats=1, classProbs=TRUE)
+#knn_cv_smote_z <- train(class~., data=smote_z_train_set, trControl=train_control, method="knn")
+#saveRDS(knn_cv_smote_z, "knn_cv_smote_z.rds")
+knn_cv_smote_z <- readRDS("knn_cv_smote_z.rds")
+knn_cv_smote_z
+```
+
+```{r}
+# Predict Sustain or Bankrupt for z_test_set
+pred2a <- predict(knn_cv_smote_z, newdata=z_test_set, type="prob")
+test2a <- evalm(data.frame(pred2a, z_test_set$class)) #AUC-ROC = 0.6
+```
+
+#### Model 2B: kNN with SMOTE & Cross Validation
+```{r}
+# Model 2B
+# 10-fold cross validation
+train_control <- trainControl(method="repeatedcv", number=10, repeats=1, classProbs=TRUE)
+#knn_cv_smote <- train(class~., data=smote_train_set, trControl=train_control, method="knn")
+#saveRDS(knn_cv_smote, "knn_cv_smote.rds")
+knn_cv_smote <- readRDS("knn_cv_smote.rds")
+knn_cv_smote
+```
+
+```{r}
+# Predict Sustain or Bankrupt for test_set
+pred2b <- predict(knn_cv_smote, newdata=test_set, type="prob")
+test2b <- evalm(data.frame(pred2b, test_set$class)) #AUC-ROC = 0.62
+```
+
+#### Model 2C: kNN with Normalisation & Cross Validation
+```{r}
+# Model 2C
+# 10-fold cross validation
+train_control <- trainControl(method="repeatedcv", number=10, repeats=1, classProbs=TRUE)
+#knn_cv_z <- train(class~., data=z_train_set, trControl=train_control, method="knn")
+#saveRDS(knn_cv_z, "knn_cv_z.rds")
+knn_cv_z <- readRDS("knn_cv_z.rds")
+knn_cv_z
+```
+
+```{r}
+# Predict Sustain or Bankrupt for z_test_set
+pred2c <- predict(knn_cv_z, newdata=z_test_set, type="prob")
+test2c <- evalm(data.frame(pred2c, z_test_set$class)) #AUC-ROC = 0.57
+```
+
+### 7.3 AdaBoost Classification Analysis
+#### Model 3A: AdaBoost with Normalisation, SMOTE & Cross Validation
+```{r}
+# Model 3A
+# 10-fold cross validation
+train_control <- trainControl(method="repeatedcv", number=10, repeats=1, classProbs=TRUE)
+#ada_cv_smote_z <- train(class~., data=smote_z_train_set, trControl=train_control, method="adaboost")
+#saveRDS(ada_cv_smote_z, "ada_cv_smote_z.rds")
+ada_cv_smote_z <- readRDS("ada_cv_smote_z.rds")
+ada_cv_smote_z
+```
+
+```{r}
+# Predict Sustain or Bankrupt for z_test_set
+pred3a <- predict(ada_cv_smote_z, newdata=z_test_set, type="prob")
+test3a <- evalm(data.frame(pred3a, z_test_set$class)) #AUC-ROC = 0.84
+```
+
+#### Model 3B: AdaBoost with SMOTE & Cross Validation
+```{r}
+# Model 3B
+# 10-fold cross validation
+train_control <- trainControl(method="repeatedcv", number=10, repeats=1, classProbs=TRUE)
+#ada_cv_smote <- train(class~., data=smote_train_set, trControl=train_control, method="adaboost")
+#saveRDS(ada_cv_smote, "ada_cv_smote.rds")
+ada_cv_smote <- readRDS("ada_cv_smote.rds")
+ada_cv_smote
+```
+
+```{r}
+# Predict Sustain or Bankrupt for test_set
+pred3b <- predict(ada_cv_smote, newdata=test_set, type="prob")
+test3b <- evalm(data.frame(pred3b, test_set$class)) #AUC-ROC = 0.84
+```
+
+#### Model 3C: AdaBoost with Normalisation & Cross Validation
+```{r}
+# Model 3C
+# 10-fold ross validation
+train_control <- trainControl(method="repeatedcv", number=10, repeats=1, classProbs=TRUE)
+#ada_cv_z <- train(class~., data=z_train_set, trControl=train_control, method="adaboost")
+#saveRDS(ada_cv_z, "ada_cv_z.rds")
+ada_cv_z <- readRDS("ada_cv_z.rds")
+ada_cv_z
+```
+
+```{r}
+# Predict Sustain or Bankrupt for z_test_set
+pred3c <- predict(ada_cv_z, newdata=z_test_set, type="prob")
+test3c <- evalm(data.frame(pred3c, z_test_set$class)) #AUC-ROC = 0.85
+```
+
+### 7.4 Logistic Regrssion Analysis
+#### Model 4A: Logistic Regression with Normalisation, SMOTE & Cross Validation
+```{r}
+# Model 4A
+# 10-fold cross validation
+train_control <- trainControl(method="repeatedcv", number=10, repeats=1, classProbs=TRUE)
+#lr_cv_smote_z <- train(class~., data=smote_z_train_set, trControl=train_control, method="glm", family="binomial")
+#saveRDS(lr_cv_smote_z, "lr_cv_smote_z.rds")
+lr_cv_smote_z <- readRDS("lr_cv_smote_z.rds")
+lr_cv_smote_z
+```
+
+```{r}
+# Predict Sustain or Bankrupt for z_test_set
+pred4a <- predict(lr_cv_smote_z, newdata=z_test_set, type="prob")
+test4a <- evalm(data.frame(pred4a, z_test_set$class)) #AUC-ROC = 0.53
+```
+
+#### Model 4B: Logistic Regression with SMOTE & Cross Validation
+```{r}
+# Model 4B
+# 10-fold cross validation
+train_control <- trainControl(method="repeatedcv", number=10, repeats=1, classProbs=TRUE)
+#lr_cv_smote <- train(class~., data=smote_train_set, trControl=train_control, method="glm", family="binomial")
+#saveRDS(lr_cv_smote, "lr_cv_smote.rds")
+lr_cv_smote <- readRDS("lr_cv_smote.rds")
+lr_cv_smote
+```
+
+```{r}
+# Predict Sustain or Bankrupt for test_set
+pred4b <- predict(lr_cv_smote, newdata=test_set, type="prob")
+test4b <- evalm(data.frame(pred4b, test_set$class)) #AUC-ROC = 0.53
+```
+
+#### Model 4C: Logistic Regression with Normalisation & Cross Validation
+```{r}
+# Model 4C
+# 10-fold cross validation
+train_control <- trainControl(method="repeatedcv", number=10, repeats=1, classProbs=TRUE)
+#lr_cv_z <- train(class~., data=z_train_set, trControl=train_control, method="glm", family="binomial")
+#saveRDS(lr_cv_z, "lr_cv_z.rds")
+lr_cv_z <- readRDS("lr_cv_z.rds")
+lr_cv_z
+```
+
+```{r}
+# Predict Sustain or Bankrupt for z_test_set
+pred4c <- predict(lr_cv_z, newdata=z_test_set, type="prob")
+test4c <- evalm(data.frame(pred4c, z_test_set$class)) #AUC-ROC = 0.67
+```
+
+### 7.5 Identifying Important Financial Ratios Associated with Bankruptcy through Logistic Regression Model
+Since Model 4C has the highest AUC-ROC among the Logistic Regression models (4A, 4B and 4C), it will be used to identify the top five most important financial ratios associated with company's bankruptcy in Poland.
+
+Attributes with higher absolute Z-score ("absZ" column in the table below) are more important features in the Logistic Regression model. The direction of correlation between attribute and likelihood of bankruptcy can be determined based on the sign of the coefficient ("Estimate" column in the table below). 
+```{r}
+c = as.data.frame(summary(lr_cv_z)[["coefficients"]])
+c$absZ = abs(c[,3])
+c = arrange(c, desc(absZ))
+c
+```
+The top five most important financial ratios in descending order and their direction of correlation are:
+
+* Attr21 : sales (n) / sales (n-1) : Higher sales growth tends to have a lower likelihood of bankruptcy.  
+* Attr9 : sales / total assets : Higher sales-to-asset ratio tends to have a lower likelihood of bankruptcy.  
+* Attr2 : total liabilities / total assets : Higher liability-to-asset ratio tends to have a higher likelihood of bankruptcy.  
+* Attr29 : logarithm of total assets : Larger company by total asset size tends to have a lower likelihood of bankruptcy.  
+* Attr18 : gross profit / total assets : Higher profit-to-asset ratio tends to have a lower likelihood of bankruptcy.   
+
+## 8. Results
+As the "class" is considerably imbalanced (majority : minority = Sustain : Bankrupt = 95% : 5%), using Accuracy [= (TP + TN) / Total] as performance metric is misleading. This is because Accuracy is largely influenced by the majority class results even there is high inaccuracy in the minority class. 
+
+In our project, Area Under Curve of Receiver Operating Characteristic (**AUC-ROC**) will be adopted as the model performance metric to address this issue. AUC-ROC of 1 indicates a perfect classifier, whilst AUC-ROC of 0.5 (45-degree line) means random guessing. The AUC-ROC for all 12 models are tabulated in **Table 8.1**.  
+
+**Table 8.1**: Performance of 12 machine learning models
+
+ | Model | Machine Learning Type | Machine Learning Method | Z-Score Normalisation | SMOTE | 10-Fold Cross Validation | AUC-ROC |
+ |:--:|:--------------:|:-------------:|:---:|:---:|:---:|:----:|
+ | 1A | Classification | Random Forest | Yes | Yes | Yes | 0.83 |
+ | 1B | Classification | Random Forest | - | Yes | Yes | 0.83 |
+ | 1C | Classification | Random Forest | Yes | - | Yes | 0.83 |
+ | 2A | Classification | k-Nearest Neighbours | Yes | Yes | Yes | 0.60 |
+ | 2B | Classification | k-Nearest Neighbours | - | Yes | Yes | 0.62 |
+ | 2C | Classification | k-Nearest Neighbours | Yes | - | Yes | 0.57 |
+ | 3A | Classification | AdaBoost | Yes | Yes | Yes | 0.84 |
+ | 3B | Classification | AdaBoost | - | Yes | Yes | 0.84 |
+ | **3C** | **Classification** | **AdaBoost** | **Yes** | **-** | **Yes** | **0.85** |
+ | 4A | Regression | Logistic Regression | Yes | Yes | Yes | 0.53 |
+ | 4B | Regression | Logistic Regression | - | Yes | Yes | 0.53 |
+ | 4C | Regression | Logistic Regression | Yes | - | Yes | 0.67 |
+
+The results show that **Model 3C** (AdaBoost Classification with Z-score normalisation and 10-fold cross validation) is the **best classifier** among the rest and it achieved an AUC-ROC of 0.85.
+
+In terms of machine learning method, AdaBoost (0.84-0.85) and Random Forest (0.83) outperformed k-Nearest Neighbours (0.57-0.62) and Logistic Regression (0.53-0.67).
+
+In terms of data treatment, adopting Z-score normalisation and/or SMOTE did not significantly affect the performance of Random Forest models; k-Nearest Neighbour model worked well with SMOTE-treated data; whereas AdaBoost and Logistic Regression models performed better under Z-score normalised data.
+
+## 9. Conclusions
+1. Nine (9) classification models and three (3) regression models were built in this project to predict whether a Polish company will sustain or bankrupt based on the financial ratios provided.
+
+2. Model 3C is the best classifier model amongst all the 12 models. It is an AdaBoost Classification model fed with Z-score normalised data and trained with 10-fold cross validation.  
+
+3. The top five most important financial ratios in descending order obtained from the Logistic Regression Model 4C are:  
+
+* Attr21 : sales (n) / sales (n-1)  
+* Attr9 : sales / total assets  
+* Attr2 : total liabilities / total assets   
+* Attr29 : logarithm of total assets   
+* Attr18 : gross profit / total assets  
+
+The findings from the models are intuitive. Higher sales (Attr21 and Attr9) often brings more cash inflow into the company, hence lowering liquidity risk and bankruptcy risk.
+
+A company with high leverage (Attr2) (i.e. high debt or liabilities relative to company size) may face higher difficulty in servicing loan interest and debt principal repayment, thus leading to a higher risk of bankruptcy.
+
+A larger company (Attr29), on the other hand, often has more established management and operational processes, therefore reducing the risk of bankruptcy.
+
+Companies which are profitable (Attr18) has a lower risk of bankruptcy inherently.  
+
+
+## References
+Altman, E. I. (1968). Financial ratios, discriminant analysis and the prediction of corporate bankruptcy. *The Journal of Finance*, *23*(4), 589–609. https://doi.org/10.1111/j.1540-6261.1968.tb00843.x
+
+Cambridge University Press. (2022, May 27). *Cambridge dictionary*. https://dictionary.cambridge.org/dictionary/english/bankrupt
+
+Financial Crisis Inquiry Commission. (2011). *The financial crisis inquiry report: Final report of the national commission on the causes of the financial and economic crisis in the United States*. https://books.google.com.my/books?id=QIKfTVrhNfMC&pg=PA352&redir_esc=y#v=onepage&q&f=false
+
+Tomczak, S. K. (2016). *Polish companies bankruptcy data* [Dataset]. UCI Machine Learning Repository. https://archive.ics.uci.edu/ml/datasets/Polish+companies+bankruptcy+data
+
+Wang, H., & Liu, X. (2021). Undersampling bankruptcy prediction: Taiwan bankruptcy data. *PLoS ONE*, *16*(7), e0254030. https://doi.org/10.1371/journal.pone.0254030
